@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Hardik — Personal Ledger</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Hardik's palette — dark base, crimson / neon green / amber accents */
+  :root{
+    --cta-bg:#E23B2E; --success:#B6FF3C; --danger:#FF6B52; --amber:#F2A93B;
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="loading">Loading your ledger…</div></div>
+
+<button class="fab" id="fabAdd" aria-label="Add transaction">+</button>
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2 id="sheetTitle">Add Transaction</h2>
+    <div class="type-toggle" id="typeToggle">
+      <button type="button" class="type-btn active" data-type="expense">Expense</button>
+      <button type="button" class="type-btn" data-type="income">Income</button>
+      <button type="button" class="type-btn" data-type="transfer">Transfer</button>
+    </div>
+    <form id="entryForm">
+      <div class="field"><label>Title</label><input type="text" id="f-title" placeholder="e.g. Zomato dinner"></div>
+      <div class="row2" id="categoryAccountRow">
+        <div class="field"><label>Category</label><select id="f-category"></select></div>
+        <div class="field"><label id="f-account-label">Account</label><select id="f-account"></select></div>
+      </div>
+      <div class="row2" id="transferRow" style="display:none;">
+        <div class="field"><label>From Account</label><select id="f-from-account"></select></div>
+        <div class="field"><label>To Account</label><select id="f-to-account"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Amount (₹)</label><input type="number" id="f-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required></div>
+        <div class="field"><label>Date</label><input type="date" id="f-date" required></div>
+      </div>
+      <div class="field"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Any details worth remembering"></textarea></div>
+      <div class="err" id="formErr">Please fill in the required fields with a valid amount.</div>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btnDelete" style="display:none;">Delete</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="overlaySettle">
+  <div class="sheet">
+    <h2>Mark as Received</h2>
+    <div class="field"><label>Which account did the money land in?</label><select id="settle-account"></select></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="settleCancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="settleConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayAccounts">
+  <div class="sheet">
+    <h2>Manage Accounts</h2>
+    <div id="accountsFormList"></div>
+    <button type="button" class="btn btn-ghost" id="btnAddAccount" style="width:100%;margin-bottom:14px;">+ Add account</button>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="acctCancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="acctSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayGoal">
+  <div class="sheet">
+    <h2 id="goalSheetTitle">New Goal</h2>
+    <div class="field"><label>Name</label><input type="text" id="g-name" placeholder="e.g. Goa trip"></div>
+    <div class="row2">
+      <div class="field"><label>Target amount (₹)</label><input type="number" id="g-target" step="0.01" min="0" placeholder="0.00"></div>
+      <div class="field"><label>Target date (optional)</label><input type="date" id="g-date"></div>
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="g-notes"></textarea></div>
+    <div id="goalContributeRow" style="display:none;background:var(--paper);border:1px solid var(--rule);border-radius:9px;padding:12px;margin-bottom:13px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Saved so far: <b id="g-saved-display" style="color:var(--ink);"></b></div>
+      <div style="display:flex;gap:8px;">
+        <input type="number" id="g-add-amount" step="0.01" min="0" placeholder="Add amount" style="flex:1;padding:10px 11px;border:1px solid var(--rule);border-radius:8px;background:var(--input-bg);color:var(--ink);font-family:inherit;font-size:14px;">
+        <button type="button" class="btn btn-primary" id="goalAddAmountBtn" style="flex:0 0 auto;padding:10px 16px;">Add</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="goalCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="goalDeleteBtn" style="display:none;">Delete</button>
+      <button type="button" class="btn btn-primary" id="goalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayIncome">
+  <div class="sheet">
+    <h2 id="incomeSheetTitle">Add Expected Income</h2>
+    <div class="field"><label>Label</label><input type="text" id="i-label" placeholder="e.g. Salary"></div>
+    <div class="row2">
+      <div class="field"><label>Amount (₹)</label><input type="number" id="i-amount" step="0.01" min="0" placeholder="0.00"></div>
+      <div class="field"><label>Day of month</label><input type="number" id="i-day" min="1" max="31" placeholder="1-31"></div>
+    </div>
+    <div class="field"><label>Into account</label><select id="i-account"></select></div>
+    <label class="chk" style="margin-bottom:13px;"><input type="checkbox" id="i-active" checked> Active</label>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="incomeCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btnDeleteIncome" style="display:none;">Delete</button>
+      <button type="button" class="btn btn-primary" id="incomeSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayRecurring">
+  <div class="sheet">
+    <h2 id="recurringSheetTitle">Add Recurring Expense</h2>
+    <div class="field"><label>Label</label><input type="text" id="r-label" placeholder="e.g. Rent, Netflix"></div>
+    <div class="row2">
+      <div class="field"><label>Amount (₹)</label><input type="number" id="r-amount" step="0.01" min="0" placeholder="0.00"></div>
+      <div class="field"><label>Day of month</label><input type="number" id="r-day" min="1" max="31" placeholder="1-31"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Category</label><select id="r-category"></select></div>
+      <div class="field"><label>Paid from</label><select id="r-account"></select></div>
+    </div>
+    <label class="chk" style="margin-bottom:13px;"><input type="checkbox" id="r-active" checked> Active</label>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="recurringCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btnDeleteRecurring" style="display:none;">Delete</button>
+      <button type="button" class="btn btn-primary" id="recurringSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PERSON = 'Hardik';
+  const PERSON_LABEL = 'Hardik';
+  const PARTNER_URL = 'index.html';
+  const PARTNER_LABEL = 'Arya';
+</script>
+<script src="app.js"></script>
+</body>
+</html>
